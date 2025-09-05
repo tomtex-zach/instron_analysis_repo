@@ -1,0 +1,20 @@
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "instron_analysis"
+version = "0.0.1"
+authors = [
+        {name = "Zach Kaye", email = "zachary.kaye@tomtex.com"},
+    ]
+description = "Analysis tool for instron session data with stats table and plotting"
+dependencies = [
+        "pandas",
+        "numpy",
+        "scipy",
+        "matplotlib"
+    ]
+
+[tool.setuptools.packages.find]
+where = ["src"]
