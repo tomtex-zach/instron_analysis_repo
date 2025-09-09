@@ -1,0 +1,11 @@
+README.md
+pyproject.toml
+src/instron_analysis/__init__.py
+src/instron_analysis/full_plot.py
+src/instron_analysis/property_calculator.py
+src/instron_analysis/raw_data_formatter.py
+src/instron_analysis.egg-info/PKG-INFO
+src/instron_analysis.egg-info/SOURCES.txt
+src/instron_analysis.egg-info/dependency_links.txt
+src/instron_analysis.egg-info/requires.txt
+src/instron_analysis.egg-info/top_level.txt
