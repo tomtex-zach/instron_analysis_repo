@@ -63,9 +63,10 @@ def format_file(filename):
     shutil.move(tempFile.name, data_filename)
     
     
-def process(filename, coupon_filename):
+def process(filename, coupon_filename, old_format = False):
     
     '''
+    Test data time drop
     Initial processing of the raw data file and coupon data into workable
     DataFrames usable for the rest of the code. Returns list of DataFrames for
     individual tests and list of tuples containing each sample and their thickness.
@@ -74,9 +75,18 @@ def process(filename, coupon_filename):
     instron_data_filename = filename
     coupon_data_filename = coupon_filename
     
-    test_data = pd.read_csv(instron_data_filename,
+    if not old_format:
+        test_data = pd.read_csv(instron_data_filename,
                             header = 2,
-                            names = ['Position (mm)', 'Force (N)'])
+                            names = ['Position (mm)', 
+                                     'Force (N)'])
+        
+    else:
+        test_data = pd.read_csv(instron_data_filename,
+                            header = 2,
+                            names = ['Time (ms)',
+                                     'Position (mm)',
+                                     'Force (N)'])
     
     coupon_data = pd.read_csv(coupon_data_filename)
     
@@ -90,10 +100,18 @@ def process(filename, coupon_filename):
             
     indx = [0]
     
-    for i in test_data[test_data['Position (mm)'].str.contains('test number:')].index:
-        indx.append(i)
-    indx.append(test_data.index[-1])
-
+    if not old_format:
+        for i in test_data[test_data['Position (mm)'].str.contains('test number:')].index:
+            indx.append(i)
+        indx.append(test_data.index[-1])
+        
+    else:
+        for i in test_data[test_data['Time (ms)'].str.contains('^test number:')].index:
+            indx.append(i)
+        indx.append(test_data.index[-1])
+        
+        test_data.drop('Time (ms)', axis = 1, inplace = True)
+    
     dfs = []
     for i in range(len(indx[:-1])):
         if i == 0:
@@ -105,7 +123,15 @@ def process(filename, coupon_filename):
         else:
             df = test_data[indx[i]+1:indx[i+1]].reset_index(drop = True)
             dfs.append(df)
+        
             
     dfs = [df for df in dfs if len(df) > 4]
+    
+    if old_format:
+        [df.drop(0, inplace = True) for df in dfs[1:]]
+        
+        for df in dfs:
+            df['Position (mm)'] = df['Position (mm)'].astype(float)
+            df['Position (mm)'] = df['Position (mm)']/80
     
     return dfs, sample_thickness_pairs

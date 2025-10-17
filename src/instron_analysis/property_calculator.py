@@ -78,13 +78,13 @@ def trim(x, y_hat, inters):
     x_points = []
     y_points = []
     for i,hinge in enumerate(inters[:2]):
-        x_point = x.loc[x.round(2) == np.float64(hinge).round(2)].to_list()[0]
+        x_point = x.loc[x.round(1) == np.float64(hinge).round(1)].to_list()[0]
         x_points.append(x_point)
         y_point = [j for i,j in zip(x,y_hat) if i == x_point][0]
         y_points.append(y_point)
         
         if i == 0:
-            m_youngs = (y_point-y_hat[0])/(hinge-x.iloc[0])
+            m_youngs = (y_point-y_hat.iloc[0])/(hinge-x.iloc[0])
         else:
             m_youngs = (y_points[i] - y_points[i-1])/(hinge-x_points[i-1])
     
@@ -111,10 +111,10 @@ def find_modulus(x, y_hat, elastic_intercept):
     coordinates of intercept point.
     '''
     
-    x_point = x.loc[x.round(2) == np.float64(elastic_intercept).round(2)].to_list()[0]
+    x_point = x.loc[x.round(1) == np.float64(elastic_intercept).round(1)].to_list()[0]
     y_point = [j for i,j in zip(x,y_hat) if i == x_point][0]
     
-    m_youngs = (y_point-y_hat[0])/(elastic_intercept-x.iloc[0])
+    m_youngs = (y_point-y_hat.iloc[0])/(elastic_intercept-x.iloc[0])
 
     return m_youngs, [x_point, y_point]
 
@@ -130,7 +130,7 @@ def offset_yield(x, x2p, y_hat, second_intercept, youngs, coords):
     the yield strain and yield stress.
     '''
     
-    x_point2 = x.loc[x.round(2) == np.float64(second_intercept).round(2)].to_list()[0]
+    x_point2 = x.loc[x.round(1) == np.float64(second_intercept).round(1)].to_list()[0]
     y_point2 = [j for i,j in zip(x,y_hat) if i == x_point2][0]
 
     m = (y_point2-coords[1])/(x_point2-coords[0])
@@ -163,6 +163,10 @@ def adjust_df(df,EGL,width,thickness):
     
     df['Load (MPa)'] = df['Force (N)'] / (width * thickness)
     
+    mask = df['Load (MPa)'] >= -0.5
+    
+    df = df[mask]
+    
     x = df['Elongation']
     y = df['Load (MPa)']
     model_df, inters = mars_model(x,y)
@@ -171,7 +175,12 @@ def adjust_df(df,EGL,width,thickness):
     idx_end = trim_end(df)
     df = df.iloc[:idx_end]
 
-    idx = trim(x, model_df.y, inters)
+    try:
+        idx = trim(x, model_df.y, inters)
+    except IndexError:
+        idx = 0
+        pass
+    
     if idx > 0:
         df = df.iloc[idx[0]:]
         df.reset_index(inplace = True)
@@ -202,7 +211,6 @@ def analyze(df,EGL,width,thickness):
     x = df['Elongation']
     x2p = df['E.2%']
     y = df['Load (MPa)']
-    
 
     model_df, inters = mars_model(x,y)
     

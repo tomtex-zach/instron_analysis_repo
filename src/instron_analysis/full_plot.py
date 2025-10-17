@@ -57,6 +57,10 @@ def plot_data(df_list,
                                  colors,
                                  markers,
                                  [name for name,d in sample_thickness_pairs]):
+        
+        mask = df['Load (MPa)'] >= -0.5
+        df = df[mask]
+        
         df.plot(ax = ax,
                 x = 'Elongation',
                 y = 'Load (MPa)',
@@ -69,7 +73,7 @@ def plot_data(df_list,
     ax.set_xlabel('Elongation (%)')
     
     handles,labels = ax.get_legend_handles_labels()
-    plt.legend(handles[::rep], labels[::rep], bbox_to_anchor = [1,0.5])
+    plt.legend(handles[::rep], labels[::rep], bbox_to_anchor = [1.15,0.5])
     
     plt.tight_layout()
     if save:
