@@ -178,6 +178,7 @@ def adjust_df(df,EGL,width,thickness):
     try:
         idx = trim(x, model_df.y, inters)
     except IndexError:
+        print('index error on sample')
         idx = 0
         pass
     
