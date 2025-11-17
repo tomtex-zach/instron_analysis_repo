@@ -69,6 +69,7 @@ def trim_end(df):
 def trim(x, y_hat, inters):
 
     '''
+    Updated 20251117
     Removes excess slack picked up in instron test that may interfere 
     with modulus calculation. Load in x and y from the model and l
     ist of intercepts. Returns the index that is used later to slice raw data 
@@ -95,7 +96,7 @@ def trim(x, y_hat, inters):
         else:
             m_youngs = (y_points[i] - y_points[i-1])/(x_points[i]-x_points[i-1])
     
-        mod_filter[m_youngs] = [x_point, y_point]
+        mod_filter[m_youngs] = [x_point.iloc[0], y_point.iloc[0]]
     
     m_youngs_final = max(list(mod_filter.keys()))
     for key in mod_filter.keys():
