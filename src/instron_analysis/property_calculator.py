@@ -25,6 +25,7 @@ import numpy as np
 import scipy.integrate
 from pyearth import Earth
 import re
+from decimal import Decimal
 
 
 def mars_model(x,y):
@@ -77,27 +78,34 @@ def trim(x, y_hat, inters):
     mod_filter = {}
     x_points = []
     y_points = []
+    
+    PRECISION = 2
     for i,hinge in enumerate(inters[:2]):
-        x_point = x.loc[x.round(1) == np.float64(hinge).round(1)].to_list()[0]
-        x_points.append(x_point)
-        y_point = [j for i,j in zip(x,y_hat) if i == x_point][0]
-        y_points.append(y_point)
+        hinge_dec = Decimal(f'{hinge:.{PRECISION}f}')
+        x_dec = x.apply(lambda num: Decimal(f'{num:.{PRECISION}f}'))
         
+        mask = x_dec == hinge_dec
+        x_point = x.loc[mask]
+        x_points.append(x_point.iloc[0])
+        y_point = y_hat.loc[mask]
+        y_points.append(y_point.iloc[0])
+
         if i == 0:
-            m_youngs = (y_point-y_hat.iloc[0])/(hinge-x.iloc[0])
+            m_youngs = (y_point-y_hat.iloc[0])/(x_point-x.iloc[0])
         else:
-            m_youngs = (y_points[i] - y_points[i-1])/(hinge-x_points[i-1])
+            m_youngs = (y_points[i] - y_points[i-1])/(x_points[i]-x_points[i-1])
     
         mod_filter[m_youngs] = [x_point, y_point]
     
-        m_youngs_final = max(list(mod_filter.keys()))
-        for key in mod_filter.keys():
-            if key < m_youngs_final:
-                idx = x.loc[x == mod_filter[key][0]].index
-                break
-            else:
-                idx = 0
-                break
+    m_youngs_final = max(list(mod_filter.keys()))
+    for key in mod_filter.keys():
+        if key < m_youngs_final:
+            
+            idx = x.loc[x == mod_filter[key][0]].index
+            break
+        else:
+            idx = 0
+            break
 
     return idx
     
