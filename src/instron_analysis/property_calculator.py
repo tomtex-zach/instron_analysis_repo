@@ -86,17 +86,17 @@ def trim(x, y_hat, inters):
         x_dec = x.apply(lambda num: Decimal(f'{num:.{PRECISION}f}'))
         
         mask = x_dec == hinge_dec
-        x_point = x.loc[mask]
-        x_points.append(x_point.iloc[0])
-        y_point = y_hat.loc[mask]
-        y_points.append(y_point.iloc[0])
+        x_point = x.loc[mask].item()
+        x_points.append(x_point)
+        y_point = y_hat.loc[mask].item()
+        y_points.append(y_point)
 
         if i == 0:
             m_youngs = (y_point-y_hat.iloc[0])/(x_point-x.iloc[0])
         else:
             m_youngs = (y_points[i] - y_points[i-1])/(x_points[i]-x_points[i-1])
     
-        mod_filter[m_youngs] = [x_point.iloc[0], y_point.iloc[0]]
+        mod_filter[m_youngs] = [x_point, y_point]
     
     m_youngs_final = max(list(mod_filter.keys()))
     for key in mod_filter.keys():
