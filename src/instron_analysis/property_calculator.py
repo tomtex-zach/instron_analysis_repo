@@ -27,6 +27,23 @@ from pyearth import Earth
 import re
 from decimal import Decimal
 
+def xy_pointFinder(x,y,point):
+    '''
+    Converts numbers in data and model DataFrames to decimals so hinges can be
+    properly mapped onto original data x,y coordinates.
+    '''
+    PRECISION = 2
+    
+    x_dec = x.apply(lambda num: Decimal(f'{num:.{PRECISION}f}'))
+    point_dec = Decimal(f'{point:.{PRECISION}f}')
+    
+    mask = x_dec == point_dec
+    
+    x_point = x.loc[mask].item()
+    y_point = y.loc[mask].item()
+    
+    return x_point, y_point
+
 
 def mars_model(x,y):
 
@@ -69,7 +86,6 @@ def trim_end(df):
 def trim(x, y_hat, inters):
 
     '''
-    Updated 20251117
     Removes excess slack picked up in instron test that may interfere 
     with modulus calculation. Load in x and y from the model and l
     ist of intercepts. Returns the index that is used later to slice raw data 
@@ -80,15 +96,10 @@ def trim(x, y_hat, inters):
     x_points = []
     y_points = []
     
-    PRECISION = 2
     for i,hinge in enumerate(inters[:2]):
-        hinge_dec = Decimal(f'{hinge:.{PRECISION}f}')
-        x_dec = x.apply(lambda num: Decimal(f'{num:.{PRECISION}f}'))
+        x_point, y_point = xy_pointFinder(x, y_hat, hinge)
         
-        mask = x_dec == hinge_dec
-        x_point = x.loc[mask].item()
         x_points.append(x_point)
-        y_point = y_hat.loc[mask].item()
         y_points.append(y_point)
 
         if i == 0:
@@ -120,8 +131,10 @@ def find_modulus(x, y_hat, elastic_intercept):
     coordinates of intercept point.
     '''
     
-    x_point = x.loc[x.round(1) == np.float64(elastic_intercept).round(1)].to_list()[0]
-    y_point = [j for i,j in zip(x,y_hat) if i == x_point][0]
+    x_point, y_point = xy_pointFinder(x, y_hat, elastic_intercept)
+    
+    #x_point = x.loc[x.round(1) == np.float64(elastic_intercept).round(1)].to_list()[0]
+    #y_point = [j for i,j in zip(x,y_hat) if i == x_point][0]
     
     m_youngs = (y_point-y_hat.iloc[0])/(elastic_intercept-x.iloc[0])
 
@@ -156,6 +169,7 @@ def offset_yield(x, x2p, y_hat, second_intercept, youngs, coords):
 def adjust_df(df,EGL,width,thickness):
     
     '''
+    Added high and low mask to remove outliers from raw data.
     Applies trim to the front and back of tensile curve in 
     case of any anomalies in order to produce the best MARS fitting 
     in the analyze function. Also adds columns for Elongation, Load and 0.2% offset
@@ -172,9 +186,11 @@ def adjust_df(df,EGL,width,thickness):
     
     df['Load (MPa)'] = df['Force (N)'] / (width * thickness)
     
-    mask = df['Load (MPa)'] >= -0.5
+    low_mask = df['Load (MPa)'] >= -0.5
+    high_mask = df['Load (MPa)'] <= df['Load (MPa)'].mean()*3
     
-    df = df[mask]
+    df = df[low_mask]
+    df = df[high_mask]
     
     x = df['Elongation']
     y = df['Load (MPa)']
@@ -229,6 +245,8 @@ def analyze(df,EGL,width,thickness):
     
     max_elongation = model_df.x.max()
     max_tenacity = model_df.y.max()
+    #max_tenacity = y.max()
+    #max_elongation = x.max()
 
     toughness = scipy.integrate.simpson(y = model_df['y'].values,
                                      x = model_df['x'].values)
