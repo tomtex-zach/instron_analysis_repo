@@ -152,8 +152,7 @@ def offset_yield(x, x2p, y_hat, second_intercept, youngs, coords):
     the yield strain and yield stress.
     '''
     
-    x_point2 = x.loc[x.round(1) == np.float64(second_intercept).round(1)].to_list()[0]
-    y_point2 = [j for i,j in zip(x,y_hat) if i == x_point2][0]
+    x_point2, y_point2 = xy_pointFinder(x, y_hat, second_intercept)
 
     m = (y_point2-coords[1])/(x_point2-coords[0])
     b = -m*x_point2+y_point2
