@@ -13,8 +13,7 @@ dependencies = [
         "pandas",
         "numpy",
         "scipy",
-        "matplotlib",
-        "decimal"
+        "matplotlib"
     ]
 
 [tool.setuptools.packages.find]
