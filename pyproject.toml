@@ -13,7 +13,8 @@ dependencies = [
         "pandas",
         "numpy",
         "scipy",
-        "matplotlib"
+        "matplotlib",
+        "py-earth2" #???
     ]
 
 [tool.setuptools.packages.find]

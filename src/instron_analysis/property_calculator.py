@@ -21,7 +21,6 @@ Created on Thu Aug 28 16:09:12 2025
 """
 
 import pandas as pd
-import numpy as np
 import scipy.integrate
 from pyearth import Earth
 import re

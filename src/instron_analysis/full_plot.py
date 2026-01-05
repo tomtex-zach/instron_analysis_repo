@@ -28,7 +28,7 @@ def plot_data(df_list,
               title: str, 
               rep, 
               sample_thickness_pairs, 
-              cmap = plt.cm.get_cmap('viridis'),
+              cmap = plt.get_cmap('viridis'),
               figsize = [14,10],
               save = False
               ):
