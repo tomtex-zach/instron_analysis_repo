@@ -90,7 +90,9 @@ def process(filename, coupon_filename, old_format = False):
     
     coupon_data = pd.read_csv(coupon_data_filename)
     
-    coupon_data['d'] = coupon_data['d'].apply(lambda x: x.split(','))
+    if len(coupon_data['d']) > 1:
+        coupon_data['d'] = coupon_data['d'].apply(lambda x: x.split(','))
+        
     coupon_data['d'] = coupon_data['d'].apply(pd.to_numeric)
     
     sample_thickness_pairs = []
