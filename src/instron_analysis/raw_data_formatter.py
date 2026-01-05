@@ -97,8 +97,12 @@ def process(filename, coupon_filename, old_format = False):
     
     sample_thickness_pairs = []
     for i,row in coupon_data.iterrows():
-        for j in row['d']:
-            sample_thickness_pairs.append([row['sample_name'], j])
+        if not len(row['d']) == 1:
+            for j in row['d']:
+                sample_thickness_pairs.append([row['sample_name'], j])
+                
+        else:
+            sample_thickness_pairs.append(row['sample_name'],row['d'])
             
     indx = [0]
     
