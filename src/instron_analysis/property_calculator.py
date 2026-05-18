@@ -243,13 +243,14 @@ def analyze(df,EGL,width,thickness):
     
     max_elongation = model_df.x.max()
     max_tenacity = model_df.y.max()
+    strain_maxT = model_df['x'].loc[model_df.y == model_df.y.max()].iloc[0]
     #max_tenacity = y.max()
     #max_elongation = x.max()
 
     toughness = scipy.integrate.simpson(y = model_df['y'].values,
                                      x = model_df['x'].values)
 
-    return modulus, yield_strain, yield_stress, max_elongation, max_tenacity, toughness
+    return modulus, yield_strain, yield_stress, max_elongation, max_tenacity, strain_maxT, toughness
 
 
 def data_table(df_list, sample_thickness_pairs, EGL_list, widths):
@@ -273,6 +274,7 @@ def data_table(df_list, sample_thickness_pairs, EGL_list, widths):
             'yield stress',
             'elongation',
             'tenacity',
+            'second yield',
             'toughness']
     
     ind_data_table = pd.DataFrame(map(analyze, df_list, EGL_list, widths, thickness),
