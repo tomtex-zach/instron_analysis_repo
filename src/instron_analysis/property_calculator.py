@@ -243,7 +243,7 @@ def analyze(df,EGL,width,thickness):
     
     max_elongation = model_df.x.max()
     max_tenacity = model_df.y.max()
-    strain_maxT = model_df['x'].loc[model_df.y == model_df.y.max()].iloc[0]
+    strain_maxT = model_df['x'].loc[model_df.y == model_df.y.iloc[:len(model_df)//4].max()].iloc[0]
     #max_tenacity = y.max()
     #max_elongation = x.max()
 
