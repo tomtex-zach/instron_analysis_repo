@@ -1,47 +1,55 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
+
 """
-Created on Wed Sep  3 16:30:05 2025
-
-This package contains functions for formatting instron data files, adjusting them
-by calculating Elongation (%), Load (MPa) etc and calculating properties such as 
-Youngs modulus, yield stress/strain, max elongation/tenacity and toughness.
-
-A quick description of the functions:
-    
-    format_file -- input filepath of raw data, file is duplicated as the "backup"
-        and data file is replaced correct format for the rest of the code.
-    process -- input filepath to formatted data file and coupon metadata and
-        get list of DataFrames for each individual test, as well as list of tuples
-        linking sample names to their thicknesses.
-    mars_model, trim_end, trim, find_modulus, offset_yield all help to calculate
-        properties. These are used in the following functions and probably have no
-        use being used separately.
-    adjust_df -- adds columns for Elongation and Load and applies trimming functions
-    analyze -- input adjusted DataFrame and other coupon data to get table of
-        physical readouts
-    data_table -- input list of DataFrames (all tests in session) to get results
-        from each test, the averages and standard deviations.
-
-@author: zachkaye
+instron_analysis package
 """
 
-from .raw_data_formatter import(
-        format_file,
-        process
-    )
+from .raw_data_formatter import (
+    parse_instron_raw,
+    parse_coupon_metadata,
+    load_and_process
+)
 
-from .property_calculator import(
-        mars_model,
-        trim_end,
-        trim,
-        find_modulus,
-        offset_yield,
-        adjust_df,
-        analyze,
-        data_table
-    )
+from .property_calculator import (
+    xy_pointFinder,
+    mars_model,
+    find_uyt,
+    trim_end,
+    trim,
+    find_modulus,
+    offset_yield,
+    adjust_df,
+    analyze,
+    data_table
+)
 
-from .full_plot import(
-        plot_data
-    )
+from .full_plot import (
+    plot_data,
+    plot_summary_data,
+    plot_modulus_fit
+)
+
+__version__ = "0.2.0"
+
+__all__ = [
+    # Data Ingestion & File Parsing
+    "parse_instron_raw",
+    "parse_coupon_metadata",
+    "load_and_process",
+    # Mechanical Property Calculations
+    "xy_pointFinder"
+    "mars_model",
+    "find_uyt",
+    "trim_end",
+    "trim",
+    "find_modulus",
+    "offset_yield",
+    "adjust_df",
+    "analyze",
+    "data_table",
+    # Plotting & Visualizations
+    "plot_data",
+    "plot_summary_data",
+    "plot_modulus_fit",
+]

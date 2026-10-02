@@ -9,135 +9,108 @@ Created on Thu Aug 28 16:20:05 2025
 # # Package:    instron_analysis
 # # Author:     Zach Kaye
 # # Created:    
-# # Modified:   28 August 2025
+# # Modified:   26 August 2026
 # # Python Version: 3.9
 # # Description: Contains functions for running Instron_Code jupyter notebook, trims slack and analyzes modulus and max tenacity
 # #
-# # Copyright:  Copyright 2025, TomTex Inc., All rights reserved.
-# # Requires:   tempfile, csv, shutil
+# # Copyright:  Copyright 2026, TomTex Inc., All rights reserved.
+# # Requires:   pathlib, pandas
 
 """
 
-from tempfile import NamedTemporaryFile
-import csv
-import shutil
+from pathlib import Path
 import pandas as pd
 
 
-def format_file(filename):
-    
+def parse_instron_raw(filepath: str | Path) -> list[pd.DataFrame]:
     '''
-    Function takes in the raw data file from the Instron machine.
-    This code is built for raw data format as of August 2025. Older tests
-    will not work in this code. No returns.
+    Parse multi-specimen Instron data file without modifying files on disk.
+    Handles files missing extension and comma method for adding tests.
+    
+    Returns list of individual specimen tests as DataFrames
     '''
     
-    data_filename = filename
-    backup_filename = 'backup_' + filename
-    
-    tempFile = NamedTemporaryFile('w+t', newline= '', delete = False)
-          
-    try:
-        shutil.copy(data_filename, backup_filename)
-        print(f'Original file {data_filename} duplicated to {backup_filename}')
-    except FileNotFoundError:
-        print(f'Error: Original file {data_filename} not found')
-        exit()
+    path = Path(filepath)
+    if not path.exists() and path.with_suffix('.csv').exists():
+        path = path.with_suffix('.csv')
         
-    with open(data_filename, 'r', newline= '') as csvFile, tempFile:        
-        reader = csv.reader(csvFile, delimiter = ',', quotechar = '"')
-        writer = csv.writer(tempFile, delimiter = ',', quotechar = '"')
-        rows = list(reader)
-    
-        count = 0
-        for i,row in enumerate(rows):
-            if i > 0 and row[0] == rows[i-1][0]:
-                pass
-            elif row[0] == '0.00':
-                writer.writerow([f'test number: {count}'])
-                writer.writerow([row[0], row[-1]])
-                count += 1
-            else:
-                writer.writerow([row[0],row[-1]])
-    
-    shutil.move(tempFile.name, data_filename)
-    
-    
-def process(filename, coupon_filename, old_format = False):
-    
-    '''
-    Test data time drop
-    Initial processing of the raw data file and coupon data into workable
-    DataFrames usable for the rest of the code. Returns list of DataFrames for
-    individual tests and list of tuples containing each sample and their thickness.
-    '''
-    
-    instron_data_filename = filename
-    coupon_data_filename = coupon_filename
-    
-    if not old_format:
-        test_data = pd.read_csv(instron_data_filename,
-                            header = 2,
-                            names = ['Position (mm)', 
-                                     'Force (N)'])
+    if not path.exists():
+        raise FileNotFoundError(f"Data file not found at {filepath} or {path.with_suffix('.csv')}")
         
-    else:
-        test_data = pd.read_csv(instron_data_filename,
-                            header = 2,
-                            names = ['Time (ms)',
-                                     'Position (mm)',
-                                     'Force (N)'])
-    
-    coupon_data = pd.read_csv(coupon_data_filename)
-    
-    if len(coupon_data['d']) > 1:
-        coupon_data['d'] = coupon_data['d'].apply(lambda x: x.split(','))
+    with open(path, 'r', encoding = 'utf-8', errors = 'ignore') as f:
+        lines = f.readlines()
         
-    coupon_data['d'] = coupon_data['d'].apply(pd.to_numeric)
+    specimen_dfs = []
+    current_rows = []
     
-    sample_thickness_pairs = []
-    for i,row in coupon_data.iterrows():
-        if not len(row['d']) == 1:
-            for j in row['d']:
-                sample_thickness_pairs.append([row['sample_name'], j])
+    for line in lines:
+        line_str = line.strip()
+        if not line_str:
+            continue
+        
+        parts = [p.strip() for p in line_str.split(',')]
+        
+        try:
+            pos = float(parts[0])
+            #Retrieve the last non-empty entry across shifted column blocks
+            force_str = next(p for p in reversed(parts[1:]) if p != '')
+            force = float(force_str)
+            
+            #A 0.00 in the position column signals a new test
+            if pos == 0.00 and current_rows and current_rows[-1][0] != 0.00:
+                df = pd.DataFrame(current_rows, columns = ['Position (mm)',
+                                                           'Force (N)'])
+                if len(df) > 4:
+                    specimen_dfs.append(df)
+                current_rows = []
                 
-        else:
-            sample_thickness_pairs.append(row['sample_name'],row['d'])
+            current_rows.append((pos, force))
+        except (ValueError, StopIteration):
+            continue
+        
+    if current_rows:
+        df = pd.DataFrame(current_rows, columns = ['Position (mm)',
+                                                   'Force (N)'])
+        if len(df) > 4:
+            specimen_dfs.append(df)
             
-    indx = [0]
+    return specimen_dfs
+
+
+def parse_coupon_metadata(filepath: str | Path) -> list[tuple[str, float]]:
+    '''
+    Parse coupon metadata csv into sample name and thickness pairs.
+    Handles comma-delimited replicate strings in column 'd'.
     
-    if not old_format:
-        for i in test_data[test_data['Position (mm)'].str.contains('test number:')].index:
-            indx.append(i)
-        indx.append(test_data.index[-1])
-        
-    else:
-        for i in test_data[test_data['Time (ms)'].str.contains('^test number:')].index:
-            indx.append(i)
-        indx.append(test_data.index[-1])
-        
-        test_data.drop('Time (ms)', axis = 1, inplace = True)
+    Returns list of sample names paired with sample thickness
+    '''
     
-    dfs = []
-    for i in range(len(indx[:-1])):
-        if i == 0:
-            df = test_data[indx[i]:indx[i+1]].reset_index(drop = True)
-            dfs.append(df)
-        elif i == indx[-1]:
-            df = test_data[indx[i]:].reset_index(drop = True)
-            dfs.append(df)
-        else:
-            df = test_data[indx[i]+1:indx[i+1]].reset_index(drop = True)
-            dfs.append(df)
+    path = Path(filepath)
+    if not path.exists() and path.with_suffix('.csv').exists():
+        path = path.with_suffix('.csv')
         
+    coupon_df = pd.read_csv(path)
+    pairs = []
+    
+    for _,row in coupon_df.iterrows():
+        sample_name = str(row['sample_name'].strip())
+        raw_d = str(row['d'].strip())
+        
+        thicknesses = [float(v.strip()) for v in raw_d.split(',') if v.strip()]
+        for t in thicknesses:
+            pairs.append((sample_name, t))
             
-    dfs = [df for df in dfs if len(df) > 4]
+    return pairs
+
+
+def load_and_process(data_filepath: str | Path, coupon_filepath: str | Path):
+    '''
+    Combined entry for test data and metadata.
     
-    if old_format:
-        [df.drop(0, inplace = True) for df in dfs[1:]]
-        
-        for df in dfs:
-            df['Position (mm)'] = df['Position (mm)'].astype(float)
-            df['Position (mm)'] = df['Position (mm)']/80
+    Returns list of test results in DataFrames and list of thickness pairs
+    '''
     
-    return dfs, sample_thickness_pairs
+    specimen_dfs = parse_instron_raw(data_filepath)
+    thickness_pairs = parse_coupon_metadata(coupon_filepath)
+    
+    return specimen_dfs, thickness_pairs
